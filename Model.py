@@ -78,7 +78,9 @@ Model['p_PyrExc_PyrExc'] = 0.05
 Model['p_PyrExc_PvInh'] = 0.05
 Model['p_PvInh_PyrExc'] = 0.05
 Model['p_PvInh_PvInh'] = 0.05
-# Model['p_PyrExc_SstInh'] = 0.005
+
+Model['p_PyrExc_SstInh'] = 0.05
+Model['p_PvInh_SstInh'] = 0.05
 
 # disinhibition
 Model['p_VipInh_SstInh'] = 0.15
@@ -92,7 +94,7 @@ Model['p_LocExc_VipInh'] = 0.1
 ## Background Activity
 Model['F_BgExc'] = 12.
 Model['F_LocExc'] = 4.
-Model['F_SDExc'] = 3.
+Model['F_SDExc'] = 5.
 # 'p_PyrExc_PyrExc':0.02, 'p_PyrExc_Inh':0.02, 
 # 'p_PvInh_PyrExc':0.02, 'p_PvInh_PvInh':0.02, 
 # 'p_VipInh_SstInh':0.02, 
