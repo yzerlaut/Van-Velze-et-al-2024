@@ -71,27 +71,28 @@ Model['p_BgExc_VipInh'] = 0.02
 
 # thalamic input to cortex
 Model['p_ThalExc_PyrExc'] = 0.1
-Model['p_ThalExc_PvInh'] = 0.15
+Model['p_ThalExc_PvInh'] = 0.1
 
 # cortical recurrence
 Model['p_PyrExc_PyrExc'] = 0.05
 Model['p_PyrExc_PvInh'] = 0.05
 Model['p_PvInh_PyrExc'] = 0.05
 Model['p_PvInh_PvInh'] = 0.05
+# Model['p_PyrExc_SstInh'] = 0.005
 
 # disinhibition
 Model['p_VipInh_SstInh'] = 0.15
-Model['p_SstInh_VipInh'] = 0.05
+# Model['p_SstInh_VipInh'] = 0.05
 
 # Locomotion
-Model['p_LocExc_ThalExc'] = 0.05
-Model['p_LocExc_VipInh'] = 0.05
+Model['p_LocExc_ThalExc'] = 0.1
+Model['p_LocExc_VipInh'] = 0.1
 
 
 ## Background Activity
-Model['F_BgExc'] = 15.
-Model['F_LocExc'] = 15.
-Model['F_SDExc'] = 15.
+Model['F_BgExc'] = 12.
+Model['F_LocExc'] = 4.
+Model['F_SDExc'] = 3.
 # 'p_PyrExc_PyrExc':0.02, 'p_PyrExc_Inh':0.02, 
 # 'p_PvInh_PyrExc':0.02, 'p_PvInh_PvInh':0.02, 
 # 'p_VipInh_SstInh':0.02, 
@@ -99,6 +100,9 @@ Model['F_SDExc'] = 15.
 # # simulation parameters
 # 'dt':0.1, 'tstop': 1000., 'SEED':3, # low by default, see later
 
+# build stimulation
+t, SensoryDrive, Locomotion = build_arrays(props, dt=Model['dt'])
+Model['tstop'] = t[-1]+Model['dt']
 
 if sys.argv[-1]=='plot':
     # ######################
@@ -112,17 +116,35 @@ if sys.argv[-1]=='plot':
     fig, _ = ntwk.plots.raster_and_Vm(data, 
                                       figsize=(10,2),
                                       COLORS = COLORS)
-    
+
+    fig2, ax = plt.subplots(1, figsize=(10,2.5))
+    ntwk.plots.population_activity_subplot(data, ax, 
+                                           REC_POPS, COLORS, [0,t[-1]],
+                                           with_smoothing=10, lw=1)
+
+    # fig2, _ = ntwk.plots.activity_plots(data, 
+                                        # COLORS = COLORS,
+                                        # smooth_population_activity=50.)
+    # input plot
+    fig3, AX = plt.subplots(2, 1, figsize=(10,1))
+    AX[0].plot(t, Locomotion, 'k-')
+    AX[1].plot(t, SensoryDrive, 'k-')
+    for ax, label, key in zip(AX, ['Locomotion', 'Sensory-Drive'], ['SD', 'Loc']):
+        ax.axis('off')
+        ax.set_xlim([t[0],t[-1]])
+        ax.annotate(label+' ', (0,0), ha='right')
+    for i, episode in enumerate(list(props.keys())[1:]):
+        t0 = 200+i*props['episode']+props['episode']/2.
+        AX[1].annotate('\n'+episode, (t0, 0), 
+                       xycoords='data', va='top', ha='center')
     plt.show()
 else:
-    # build stimulation
-    t, SensoryDrive, Locomotion = build_arrays(props, dt=Model['dt'])
-    Model['tstop'] = t[-1]+Model['dt']
 
     # build recurrent populations
     NTWK = ntwk.build.populations(Model, REC_POPS,
                                   AFFERENT_POPULATIONS=AFF_POPS,
-                                  with_raster=True, with_Vm=1,
+                                  with_raster=True, with_Vm=2,
+                                  with_pop_act=True,
                                   # with_synaptic_currents=True,
                                   # with_synaptic_conductances=True,
                                   verbose=True)

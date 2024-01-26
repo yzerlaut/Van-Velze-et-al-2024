@@ -24,7 +24,7 @@ props = {
                               'amp_SD':1, # in Hz
                               'duration_SD':200, # in ms
                               't0_Loc': 200, # in ms
-                              'amp_Loc':10, # in Hz
+                              'amp_Loc':1., # in Hz
                               'duration_Loc':200},
     'S1-whisking-only':{'t0_SD':200, # in ms
                               'amp_SD':1, # in Hz
