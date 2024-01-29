@@ -72,7 +72,7 @@ for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
 
 ## background to pop
 Model['p_BgExc_ThalExc'] = 0.05
-Model['p_BgExc_SstInh'] = 0.1
+Model['p_BgExc_SstInh'] = 0.15
 Model['p_BgExc_VipInh'] = 0.05
 
 ## thalamic input to cortex
