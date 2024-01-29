@@ -17,7 +17,7 @@ COLORS = ['tab:green','tab:red','tab:orange','tab:purple','tab:blue']
 Model = {
     # numbers of neurons in population
     'N_PyrExc':4000, 'N_PvInh':800, 'N_VipInh':200, 'N_SstInh':200, # cortex
-    'N_ThalExc':100,  # thalamus
+    'N_ThalExc':200,  # thalamus
     # 
     # ---- some other common props ----
     # synaptic time constants
@@ -32,7 +32,7 @@ Model = {
 ## Afferent excitatory populations: Background + Locomotion + Sensory-Drive
 AFF_POPS = ['BgExc', 'LocExc', 'SDExc']
 for pop in AFF_POPS:
-    Model['N_%s'%pop] = 100 # common for all aff pops
+    Model['N_%s'%pop] = 200 # common for all aff pops
 
 ## Synaptic Weights
 for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
@@ -63,46 +63,47 @@ for pop in REC_POPS:
     else:
         Model['%s_Vthre'%pop]= -50.
 
-## Connectivity Parameters
-# background to pop
-Model['p_BgExc_ThalExc'] = 0.1
-Model['p_BgExc_SstInh'] = 0.1
-Model['p_BgExc_VipInh'] = 0.02
+## ------------------------------- ##
+## --- Connectivity Parameters --- ##
+## ------------------------------- ##
 
-# thalamic input to cortex
-Model['p_ThalExc_PyrExc'] = 0.1
-Model['p_ThalExc_PvInh'] = 0.1
+## background to pop
+Model['p_BgExc_ThalExc'] = 0.05
+Model['p_BgExc_SstInh'] = 0.05
+Model['p_BgExc_VipInh'] = 0.05
 
-# cortical recurrence
+## thalamic input to cortex
+Model['p_ThalExc_PyrExc'] = 0.025
+Model['p_ThalExc_PvInh'] = 0.025
+
+## cortical recurrence
 Model['p_PyrExc_PyrExc'] = 0.05
 Model['p_PyrExc_PvInh'] = 0.05
 Model['p_PvInh_PyrExc'] = 0.05
 Model['p_PvInh_PvInh'] = 0.05
 
-Model['p_PyrExc_SstInh'] = 0.05
-Model['p_PvInh_SstInh'] = 0.05
+Model['p_PyrExc_SstInh'] = 0.001
+# Model['p_PvInh_SstInh'] = 0.05
 
-# disinhibition
-Model['p_VipInh_SstInh'] = 0.15
+## disinhibition
+Model['p_VipInh_SstInh'] = 0.1
 # Model['p_SstInh_VipInh'] = 0.05
 
-# Locomotion
-Model['p_LocExc_ThalExc'] = 0.1
-Model['p_LocExc_VipInh'] = 0.1
+## Locomotion
+Model['p_LocExc_ThalExc'] = 0.05
+Model['p_LocExc_VipInh'] = 0.025
+
+## Sensory Drive
+Model['p_SDExc_ThalExc'] = 0.05
+Model['p_SDExc_VipInh'] = 0.05
 
 
 ## Background Activity
 Model['F_BgExc'] = 12.
-Model['F_LocExc'] = 4.
-Model['F_SDExc'] = 5.
-# 'p_PyrExc_PyrExc':0.02, 'p_PyrExc_Inh':0.02, 
-# 'p_PvInh_PyrExc':0.02, 'p_PvInh_PvInh':0.02, 
-# 'p_VipInh_SstInh':0.02, 
-# 'p_ThalExc_PyrExc':0.1, 'p_ThalExc_Inh':0.1, 'p_ThalExc_DsInh':0.1, 
-# # simulation parameters
-# 'dt':0.1, 'tstop': 1000., 'SEED':3, # low by default, see later
+Model['F_LocExc'] = 2.5
+Model['F_SDExc'] = 2.5
 
-# build stimulation
+## build stimulation
 t, SensoryDrive, Locomotion = build_arrays(props, dt=Model['dt'])
 Model['tstop'] = t[-1]+Model['dt']
 
@@ -128,15 +129,16 @@ if sys.argv[-1]=='plot':
                                         # COLORS = COLORS,
                                         # smooth_population_activity=50.)
     # input plot
-    fig3, AX = plt.subplots(2, 1, figsize=(10,1))
+    fig3, AX = plt.subplots(2, 1, figsize=(10,2))
+    plt.subplots_adjust(bottom=.5, top=1.)
     AX[0].plot(t, Locomotion, 'k-')
     AX[1].plot(t, SensoryDrive, 'k-')
     for ax, label, key in zip(AX, ['Locomotion', 'Sensory-Drive'], ['SD', 'Loc']):
         ax.axis('off')
         ax.set_xlim([t[0],t[-1]])
         ax.annotate(label+' ', (0,0), ha='right')
-    for i, episode in enumerate(list(props.keys())[1:]):
-        t0 = 200+i*props['episode']+props['episode']/2.
+    for i, episode in enumerate(list(props.keys())[1:props['Nepisode']+1]):
+        t0 = props['time_factor']*(props['pre_time']+i*props['episode']+props['episode']/2.)
         AX[1].annotate('\n'+episode, (t0, 0), 
                        xycoords='data', va='top', ha='center')
     plt.show()
@@ -159,15 +161,15 @@ else:
 
     # # # afferent excitation onto thalamic excitation
     for Aff, AffRate in zip(AFF_POPS, 
-                            [1.+0.*t, Locomotion, SensoryDrive]):
+                            [Model['F_BgExc']+0.*t, Locomotion, SensoryDrive]):
         for p, pop in enumerate(REC_POPS):
             if ('p_%s_%s' % (Aff, pop) in Model) and\
                     (Model['p_%s_%s' % (Aff,pop)] > 0):
                 ntwk.stim.construct_feedforward_input(NTWK, 
                                                       pop, Aff,
-                                                      t, Model['F_%s'%Aff]*AffRate,
+                                                      t, AffRate,
                                                       verbose=True,
-                                                      SEED=3*p+1)
+                                                      SEED=3*p+10+np.random.randint(100))
 
 
     ################################################################
