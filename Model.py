@@ -147,7 +147,7 @@ else:
     # build recurrent populations
     NTWK = ntwk.build.populations(Model, REC_POPS,
                                   AFFERENT_POPULATIONS=AFF_POPS,
-                                  with_raster=True, with_Vm=2,
+                                  with_raster=True, with_Vm=3,
                                   with_pop_act=True,
                                   verbose=True)
 
