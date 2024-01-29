@@ -34,7 +34,7 @@ AFF_POPS = ['BgExc', 'LocExc', 'SDExc']
 for pop in AFF_POPS:
     Model['N_%s'%pop] = 200 # common for all aff pops
 
-## Synaptic Weights
+ # Synaptic Weights
 for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
     if pre in AFF_POPS+['ThalExc']:
         Model['Q_%s_%s'%(pre, post)] = 4. # nS
