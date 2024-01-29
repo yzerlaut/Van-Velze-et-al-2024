@@ -67,9 +67,12 @@ for pop in REC_POPS:
 ## --- Connectivity Parameters --- ##
 ## ------------------------------- ##
 
+for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
+    Model['p_%s_%s' % (pre, post)] = 0 # all zero by default
+
 ## background to pop
 Model['p_BgExc_ThalExc'] = 0.05
-Model['p_BgExc_SstInh'] = 0.05
+Model['p_BgExc_SstInh'] = 0.1
 Model['p_BgExc_VipInh'] = 0.05
 
 ## thalamic input to cortex
@@ -82,26 +85,23 @@ Model['p_PyrExc_PvInh'] = 0.05
 Model['p_PvInh_PyrExc'] = 0.05
 Model['p_PvInh_PvInh'] = 0.05
 
-Model['p_PyrExc_SstInh'] = 0.001
-# Model['p_PvInh_SstInh'] = 0.05
+Model['p_PyrExc_SstInh'] = 0.
 
 ## disinhibition
-Model['p_VipInh_SstInh'] = 0.1
+Model['p_VipInh_SstInh'] = 0.15
 # Model['p_SstInh_VipInh'] = 0.05
 
-## Locomotion
+## Locomotion - modulation
 Model['p_LocExc_ThalExc'] = 0.05
 Model['p_LocExc_VipInh'] = 0.025
 
-## Sensory Drive
+## Sensory Drive - modulation
 Model['p_SDExc_ThalExc'] = 0.05
 Model['p_SDExc_VipInh'] = 0.05
 
-
 ## Background Activity
 Model['F_BgExc'] = 12.
-Model['F_LocExc'] = 2.5
-Model['F_SDExc'] = 2.5
+
 
 ## build stimulation
 t, SensoryDrive, Locomotion = build_arrays(props, dt=Model['dt'])
@@ -149,12 +149,10 @@ else:
                                   AFFERENT_POPULATIONS=AFF_POPS,
                                   with_raster=True, with_Vm=2,
                                   with_pop_act=True,
-                                  # with_synaptic_currents=True,
-                                  # with_synaptic_conductances=True,
                                   verbose=True)
 
     ntwk.build.recurrent_connections(NTWK, SEED=5, verbose=True)
-
+    print(NTWK)
     #######################################
     ########### AFFERENT INPUTS ###########
     #######################################
