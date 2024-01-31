@@ -3,7 +3,7 @@ import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 
 REC_POPS = ['ThalExc', 'RecExc', 'RecInh', 'VipInh', 'SstInh']
-AFF_POPS = ['BgExc', 'AffExc']
+AFF_POPS = ['BgExc', 'ExcToVip', 'ExcToThal']
 COLORS = ['tab:blue', 'tab:green', 'tab:red', 'tab:purple', 'tab:orange']
 
 Model = {}

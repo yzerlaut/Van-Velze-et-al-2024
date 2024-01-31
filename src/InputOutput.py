@@ -1,14 +1,8 @@
-import brian2
-import numpy as np
-import matplotlib.pylab as plt
-import itertools, scipy.special
-from scipy.ndimage import gaussian_filter1d
-
 import sys, pathlib
-sys.path.append(str(pathlib.Path(__file__).resolve().parent))
-from ntwk_sim import *
-import sys
-sys.path.append('./')
+import numpy as np
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from src.ntwk_sim import *
 from neural_network_dynamics import ntwk
 
 dt = 0.1
@@ -51,12 +45,10 @@ if __name__=='__main__':
             Model['p_RecExc_SstInh'] = 0
             filename = 'data/IO-Both-Uncoupled.h5'
 
-        print(Model['p_RecExc_SstInh'])
-
     Model['dt'], Model['tstop'] = dt, t[-1]+dt
 
     NTWK = run_ntwk_sim(Model, REC_POPS,
                         AFF_POPS=AFF_POPS,
                         AFF_RATE_ARRAYS = [Model['F_BgExc']+0*t, 
-                                           stim])
+                                           stim, stim])
     ntwk.recording.write_as_hdf5(NTWK, filename=filename)

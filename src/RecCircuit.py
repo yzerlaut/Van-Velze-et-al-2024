@@ -11,13 +11,13 @@ from scipy.ndimage import gaussian_filter1d
 REC_POPS = ['ThalExc', 'RecExc', 'RecInh']
 COLORS = ['tab:blue', 'tab:green', 'tab:red']
 
-AFF_POPS = ['BgExc', 'AffExc']
+AFF_POPS = ['BgExc', 'ExcToThal']
 
 Model = {
     # numbers of neurons in population
     'N_ThalExc':200, 
     'N_RecExc':4000, 'N_RecInh':800, 
-    'N_AffExc':100, 'N_BgExc':100, 
+    'N_ExcToThal':100, 'N_BgExc':100, 
     # synaptic time constants
     'Tsyn_Exc':5., 'Tsyn_Inh':5.,
     # synaptic reversal potentials
@@ -28,7 +28,7 @@ Model = {
     'p_RecExc_RecExc':0.05, 'p_RecExc_RecInh':0.05, 
     'p_RecInh_RecExc':0.05, 'p_RecInh_RecInh':0.05, 
     'p_ThalExc_RecExc':0.05, 'p_ThalExc_RecInh':0.05, 
-    'p_AffExc_ThalExc':0.2,
+    'p_ExcToThal_ThalExc':0.2,
     'p_BgExc_ThalExc':0.05, 'p_BgExc_RecExc':0.02, 'p_BgExc_RecInh':0.02,
     # Background Act.
     'F_BgExc':20.,

@@ -1,86 +1,106 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
+import matplotlib.pylab as plt
 
-loc_amp = 2.5
-sd_amp = 3.
+EpisodeLength = 1.5e3
+Fraction = 0.3
+Smoothing = 50
 
-props = {
-    'episode':600, # in ms
-    'V1-dark-locomotion':{'t0_SD':0, # in ms
-                          'amp_SD':0, # in Hz
-                          'duration_SD':0., # in ms
-                          't0_Loc': 200, # in ms
-                          'amp_Loc':loc_amp, # in Hz
-                          'duration_Loc':200},
-    'V1-light-locomotion':{'t0_SD':50, # in ms
-                          'amp_SD':sd_amp, # in Hz
-                          'duration_SD':500, # in ms
-                          't0_Loc': 200, # in ms
-                          'amp_Loc':loc_amp, # in Hz
-                          'duration_Loc':200},
-    'S1-trimmed-locomotion':{'t0_SD':0, # in ms
-                             'amp_SD':sd_amp, # in Hz
-                             'duration_SD':0, # in ms
-                             't0_Loc': 200, # in ms
-                             'amp_Loc':loc_amp, # in Hz
-                             'duration_Loc':200},
-    'S1-whisking-locomotion':{'t0_SD':200, # in ms
-                              'amp_SD':sd_amp, # in Hz
-                              'duration_SD':200, # in ms
-                              't0_Loc': 200, # in ms
-                              'amp_Loc':loc_amp, # in Hz
-                              'duration_Loc':200},
-    'S1-whisking-only':{'t0_SD':200, # in ms
-                              'amp_SD':sd_amp, # in Hz
-                              'duration_SD':200, # in ms
-                              't0_Loc': 0, # in ms
-                              'amp_Loc':0, # in Hz
-                              'duration_Loc':0},
-}
-    
-    
-                          
-                          
-def build_arrays(props,
+whisking_event = {'fraction':Fraction,
+                  'amplitude':3.0,
+                  'name':'whisking',
+                  'color':'dodgerblue'}
+running_event = {'fraction':Fraction,
+                 'amplitude':3.,
+                  'name':'running',
+                 'color':'firebrick'}
+whiskerAff_event = {'fraction':Fraction,
+                    'amplitude':4.0,
+                    'name':'whisk. stim.',
+                    'color':'darkturquoise'}
+light_event = {'fraction':1.0,
+               'amplitude':4,
+               'name':'light stim.',
+               'color':'tab:olive'}
+
+Types = [whisking_event, running_event,
+         whiskerAff_event, light_event]
+
+Events = [\
+    {'name':'V1 \n no light \n running event',
+     'neuromodulatory':[whisking_event, running_event],
+     'sensory':[],
+     },
+    {'name':'V1 \n ambient light \n running event',
+     'neuromodulatory':[whisking_event, running_event],
+     'sensory':[light_event],
+     },
+    {'name':'S1 \n whisker-trimmed \n running event',
+     'neuromodulatory':[whisking_event, running_event],
+     'sensory':[],
+     },
+    {'name':'S1 \n whisking & \n running event',
+     'neuromodulatory':[whisking_event, running_event],
+     'sensory':[whiskerAff_event],
+     },
+    {'name':'S1 \n whisking-only \n event',
+     'neuromodulatory':[whisking_event],
+     'sensory':[whiskerAff_event],
+     },
+]
+
+def make_increment(t, e, fraction, 
+                   length, amplitude,
+                   smoothing, dt):
+    tcenter = e*length+length/2.
+    increment = 0*t
+    cond = (t>(tcenter-length*fraction/2.)) &\
+        (t<(tcenter+length*fraction/2.))
+    increment[cond] += amplitude
+    return gaussian_filter1d(increment, int(smoothing/dt))
+
+
+
+def build_arrays(Events,
+                 length = EpisodeLength,
                  dt=0.1,
-                 pre_time = 200,
-                 smoothing=50,
-                 time_factor=2):
+                 smoothing=Smoothing,
+                 AX = None):
 
-    Nep = len(props.keys())-1
-    tfull = time_factor*(pre_time+Nep*props['episode'])
+
+    Nep = len(Events)
+    tfull = Nep*length
     t = np.arange(int(tfull/dt))*dt
-    SD, Loc = 0*t, 0*t
-    for i, episode in enumerate(list(props.keys())[1:]):
-        for key, array in zip(['SD', 'Loc'], [SD, Loc]):
-            t0 = time_factor*(pre_time+i*props['episode']+props[episode]['t0_%s'%key])
-            tend = t0+time_factor*props[episode]['duration_%s'%key]
-            array[(t>t0) & (t<tend)] = props[episode]['amp_%s'%key]
 
-    SD = gaussian_filter1d(SD, int(smoothing/dt))
-    Loc = gaussian_filter1d(Loc, int(smoothing/dt))
+    Neuromodulatory, Sensory = 0*t, 0*t
 
-    props['Nepisode'] = Nep
-    props['pre_time'] = pre_time
-    props['time_factor'] = time_factor
-    return t, SD, Loc
+    for e, Event in enumerate(Events):
+        for i, key, array in zip(range(2),
+                                 ['neuromodulatory', 'sensory'],
+                                 [Neuromodulatory, Sensory]):
+            for event in Event[key]:
+                new = make_increment(t, e, event['fraction'], 
+                                     length, event['amplitude'],
+                                     smoothing, dt) 
+                if AX is not None:
+                    AX[i].fill_between(t, array, array+new, 
+                                       lw=0, alpha=0.7, 
+                                       color=event['color'])
+                array += new
+
+    if AX is not None:
+        for e, Event in enumerate(Events):
+            t0 = e*length+length/2.
+            AX[1].annotate('\n'+Event['name'], (t0, 0), 
+                           xycoords='data', va='top', ha='center')
+
+    return t, Neuromodulatory, Sensory
 
 if __name__=='__main__':
 
     import matplotlib.pylab as plt
-
-    t, SensoryDrive, Locomotion = build_arrays(props)
-                                              
-    fig3, AX = plt.subplots(2, 1, figsize=(15,2))
-    plt.subplots_adjust(bottom=.5)
-    AX[0].plot(t, Locomotion, 'k-')
-    AX[1].plot(t, SensoryDrive, 'k-')
-    for ax, label, key in zip(AX, ['Locomotion', 'Sensory-Drive'], ['SD', 'Loc']):
-        ax.axis('off')
-        ax.set_xlim([t[0],t[-1]])
-        ax.annotate(label+' ', (0,0), ha='right')
-    for i, episode in enumerate(list(props.keys())[1:props['Nepisode']+1]):
-        t0 = props['time_factor']*(props['pre_time']+i*props['episode']+props['episode']/2.)
-        AX[1].annotate('\n'+episode, (t0, 0), 
-                       xycoords='data', va='top', ha='center')
+    fig, AX = plt.subplots(2, 1, figsize=(10,2))
+    plt.subplots_adjust(bottom=.4, top=.99)
+    _ = build_arrays(Events, AX=AX)
     plt.show()
+
