@@ -18,7 +18,7 @@ for key in Model2:
 Model['p_RecExc_SstInh'] = 0.01
 
 for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
-    if pre=='ThalExc':
+    if pre in ['BgExc', 'ThalExc']:
         Model['Q_%s_%s'%(pre, post)] = 4. # nS
     elif 'Exc' in pre:
         Model['Q_%s_%s'%(pre, post)] = 2. # nS
