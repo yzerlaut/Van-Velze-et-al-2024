@@ -17,7 +17,7 @@ Model = {
     # numbers of neurons in population
     'N_ThalExc':200, 
     'N_RecExc':4000, 'N_RecInh':800, 
-    'N_ExcToThal':100, 'N_BgExc':100, 
+    'N_ExcToThal':100, 'N_BgExc':200, 
     # synaptic time constants
     'Tsyn_Exc':5., 'Tsyn_Inh':5.,
     # synaptic reversal potentials
@@ -28,11 +28,12 @@ Model = {
     'p_RecExc_RecExc':0.05, 'p_RecExc_RecInh':0.05, 
     'p_RecInh_RecExc':0.05, 'p_RecInh_RecInh':0.05, 
     'p_ThalExc_RecExc':0.05, 'p_ThalExc_RecInh':0.05, 
-    'p_ExcToThal_ThalExc':0.1,
+    'p_ExcToThal_ThalExc':0.15,
     'p_BgExc_ThalExc':0.05, 
-    'p_BgExc_RecExc':0.05, 'p_BgExc_RecInh':0.05,
+    'p_BgExc_RecExc':0.02, 
+    'p_BgExc_RecInh':0.02,
     # Background Act.
-    'F_BgExc':8.,
+    'F_BgExc':10.,
 }
 
 ## Cellular Properties
@@ -50,7 +51,9 @@ for pop in REC_POPS:
 
 ## Synaptic Weights
 for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
-    if pre in ['BgExc', 'ThalExc']:
+    if pre=='ThalExc':
+        Model['Q_%s_%s'%(pre, post)] = 4. # nS
+    elif (pre=='BgExc') and ('Rec' in post):
         Model['Q_%s_%s'%(pre, post)] = 4. # nS
     elif 'Exc' in pre:
         Model['Q_%s_%s'%(pre, post)] = 2. # nS

@@ -2,11 +2,64 @@ import brian2
 import numpy as np
 import matplotlib.pylab as plt
 import itertools, scipy.special
-from scipy.ndimage import gaussian_filter1d
+from scipy.ndimage.filters import gaussian_filter1d
 
+#######################################################
+# A large dictionary storing all networks parameters
+#######################################################
 
-def build_neuron_params(Model,
-                        NRN_KEY, N=1):
+AFF_POPS = ['AffExc']
+REC_POPS = ['RecExc', 'RecInh', 'DsInh']
+
+Model = {
+    ## ---------------------------------------------------------------------------------
+    ### Initialisation by default parameters
+    ## UNIT SYSTEM is : ms, mV, pF, nS, pA, Hz (arbitrary and unconsistent, so see code)
+    ## ---------------------------------------------------------------------------------
+    # numbers of neurons in population
+    'N_RecExc':4000, 'N_RecInh':1000, 'N_AffExc':100, 'N_DsInh':200,
+    # synaptic time constants (ms)
+    'Tse':5., 'Tsi':5.,
+    # synaptic reversal potentials (mV)
+    'Ee':0., 'Ei': -80.,
+    # connectivity parameters (proba.)
+    'p_RecExc_RecExc':0.05, 'p_RecExc_RecInh':0.05, 
+    'p_RecInh_RecExc':0.05, 'p_RecInh_RecInh':0.05, 
+    'p_DsInh_RecInh':0.05, 
+    'p_AffExc_RecExc':0.1, 'p_AffExc_RecInh':0.1, 'p_AffExc_DsInh':0.1,
+    # afferent stimulation (Hz)
+    'F_AffExc':10.,
+    # simulation parameters (ms)
+    'dt':0.1, 'SEED':3, # low by default, see later
+    ## ---------------------------------------------------------------------------------
+    # === afferent population waveform:
+    'Faff1':4.,'Faff2':20.,'Faff3':8.,
+    'DT':900., 'rise':50.
+}
+
+for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
+    if pre=='AffExc':
+        Model['Q_%s_%s'%(pre, post)] = 4. # nS
+    elif 'Exc' in pre:
+        Model['Q_%s_%s'%(pre, post)] = 2. # nS
+    elif 'Inh' in pre:
+        Model['Q_%s_%s'%(pre, post)] = 10. # nS
+
+## Cellular Properties
+for pop in REC_POPS:
+    # common for all
+    for key, value in zip(['Gl','Cm','Trefrac','El','Vreset'],
+                          [ 10., 200.,  5.0,   -70.,  -70.]):
+        Model['%s_%s'%(pop,key)]= value
+    # pop-specific
+    if pop in ['RecInh']:
+        # slightly more excitable
+        Model['%s_Vthre'%pop]= -53.
+    else:
+        Model['%s_Vthre'%pop]= -50.
+
+def built_up_neuron_params(Model,
+                           NRN_KEY, N=1):
     """ we construct a dictionary from the """
     params = {'name':NRN_KEY, 'N':N}
     keys = ['Gl', 'Cm','Trefrac', 'El', 'Vthre', 'Vreset']
@@ -62,28 +115,22 @@ def get_syn_and_conn_matrix(Model,
     SOURCE_POPULATIONS = POPULATIONS+AFFERENT_POPULATIONS
     
     # creating empty arry of objects (future dictionnaries)
-    M = np.empty((len(SOURCE_POPULATIONS), len(POPULATIONS)),
-                 dtype=object)
+    M = np.empty((len(SOURCE_POPULATIONS), len(POPULATIONS)), dtype=object)
     # default initialisation
-    for i, j in itertools.product(range(len(SOURCE_POPULATIONS)),
-                                  range(len(POPULATIONS))):
+    for i, j in itertools.product(range(len(SOURCE_POPULATIONS)), range(len(POPULATIONS))):
         source_pop, target_pop = SOURCE_POPULATIONS[i], POPULATIONS[j]
-        if 'Exc' in source_pop:
-            # common Erev and Tsyn to all excitatory currents
-            Erev, Ts = Model['Erev_Exc'], Model['Tsyn_Exc'] 
-        elif 'Inh' in source_pop:
-            # common Erev and Tsyn to all inhibitory currents
-            Erev, Ts = Model['Erev_Inh'], Model['Tsyn_Inh'] 
+        if len(source_pop.split('Exc'))>1:
+            Erev, Ts = Model['Ee'], Model['Tse'] # common Erev and Tsyn to all excitatory currents
+        elif len(source_pop.split('Inh'))>1:
+            Erev, Ts = Model['Ei'], Model['Tsi'] # common Erev and Tsyn to all inhibitory currents
         else:
-            print(' /!\ SOURCE POP NOT CLASSIFIED AS Exc or Inh /!\ ')
+            print(' /!\ SOURCE POP COULD NOT BE CLASSIFIED AS Exc or Inh /!\ ')
             print('-----> set to Exc by default')
-            Erev, Ts = Model['Erev_Exc'], Model['Tsyn_Exc'] 
+            Erev, Ts = Model['Ee'], Model['Tse']
 
         # CONNECTION PROBABILITY AND SYNAPTIC WEIGHTS
-        if ('p_'+source_pop+'_'+target_pop in Model) and\
-                ('Q_'+source_pop+'_'+target_pop in Model):
-            pconn = Model['p_'+source_pop+'_'+target_pop]
-            Qsyn = Model['Q_'+source_pop+'_'+target_pop]
+        if ('p_'+source_pop+'_'+target_pop in Model.keys()) and ('Q_'+source_pop+'_'+target_pop in Model.keys()):
+            pconn, Qsyn = Model['p_'+source_pop+'_'+target_pop], Model['Q_'+source_pop+'_'+target_pop]
         else:
             if verbose:
                 print('No connection for:', source_pop,'->', target_pop)
@@ -94,7 +141,6 @@ def get_syn_and_conn_matrix(Model,
                    'name':source_pop+target_pop}
 
     return M
-
 
 def build_populations(Model,
                       POPULATIONS,
@@ -113,29 +159,27 @@ def build_populations(Model,
 
     NTWK = {'NEURONS':NEURONS, 'Model':Model,
             'POPULATIONS':np.array(POPULATIONS),
-            'AFFERENT_POPULATIONS':np.array(AFFERENT_POPULATIONS),
             'M':get_syn_and_conn_matrix(Model,
                                         POPULATIONS,
-                                        AFFERENT_POPULATIONS=\
-                                                AFFERENT_POPULATIONS,
+                                        AFFERENT_POPULATIONS=AFFERENT_POPULATIONS,
                                         verbose=verbose)}
     
-    #######################
-    ####  Setting up  #####
-    #######################
+    ########################################################################
+    ####  Setting up 
+    ########################################################################
     
     NTWK['POPS'] = []
     for ii, nrn in enumerate(NEURONS):
-        neuron_params = build_neuron_params(Model,
-                                            nrn['name'], N=nrn['N'])
+        neuron_params = built_up_neuron_params(Model,
+                                               nrn['name'], N=nrn['N'])
         NTWK['POPS'].append(get_membrane_equation(neuron_params,
                                                   NTWK['M'][:,ii],
                                                   verbose=verbose))
         nrn['params'] = neuron_params
 
-    #######################
-    ####  Recordings  #####
-    #######################
+    ########################################################################
+    #### Recordings
+    ########################################################################
     
     NTWK['POP_ACT'] = []
     for pop in NTWK['POPS']:
@@ -148,14 +192,11 @@ def build_populations(Model,
     if with_Vm>0:
         NTWK['VMS'] = []
         for pop in NTWK['POPS']:
-            NTWK['VMS'].append(brian2.StateMonitor(pop, 'V',
-                                    record=np.arange(with_Vm)))
-
-   # for future afferent inputs:
-    NTWK['PRE_SPIKES'], NTWK['PRE_SYNAPSES'] = [], [] 
+            NTWK['VMS'].append(brian2.StateMonitor(pop, 'V', record=np.arange(with_Vm)))
+            
+    NTWK['PRE_SPIKES'], NTWK['PRE_SYNAPSES'] = [], [] # for future afferent inputs
     
     return NTWK
-
 
 def build_up_recurrent_connections(NTWK, SEED=1, verbose=False):
     """
@@ -171,37 +212,24 @@ def build_up_recurrent_connections(NTWK, SEED=1, verbose=False):
         print('drawing random connections [...]')
         print('------------------------------------------------------')
         
-    for ii, jj in itertools.product(range(len(NTWK['POPS'])),
-                                    range(len(NTWK['POPS']))):
-
+    for ii, jj in itertools.product(range(len(NTWK['POPS'])), range(len(NTWK['POPS']))):
         if (NTWK['M'][ii,jj]['pconn']>0) and (NTWK['M'][ii,jj]['Q']!=0):
-
-            CONN[ii,jj] = brian2.Synapses(NTWK['POPS'][ii],
-                                          NTWK['POPS'][jj], 
-                                          model='w:siemens',
-                    on_pre='G'+NTWK['M'][ii,jj]['name']+'_post+=w')
-
-            # we draw manually the connection:
+            CONN[ii,jj] = brian2.Synapses(NTWK['POPS'][ii], NTWK['POPS'][jj], model='w:siemens',\
+                               on_pre='G'+NTWK['M'][ii,jj]['name']+'_post+=w')
+            # N.B. the following brian2 settings:
+            # CONN[ii,jj].connect(p=NTWK['M'][ii,jj]['pconn'], condition='i!=j')
+            # does not fix synaptic numbers, so we draw manually the connections
             N_per_cell = int(NTWK['M'][ii,jj]['pconn']*NTWK['POPS'][ii].N)
-
-            if ii==jj: 
-                # need to take care of no autapse
+            if ii==jj: # need to take care of no autapse
                 i_rdms = np.concatenate([\
-                    np.random.choice(
-                        np.delete(np.arange(NTWK['POPS'][ii].N),
-                                  [iii]), N_per_cell)\
-                              for iii in range(NTWK['POPS'][jj].N)])
+                                np.random.choice(
+                                    np.delete(np.arange(NTWK['POPS'][ii].N), [iii]), N_per_cell)\
+                                          for iii in range(NTWK['POPS'][jj].N)])
             else:
                 i_rdms = np.concatenate([\
-                        np.random.choice(\
-                            np.arange(NTWK['POPS'][ii].N),
-                                         N_per_cell)\
-                                  for jjj in range(NTWK['POPS'][jj].N)])
-
-            j_fixed = np.concatenate([\
-                    np.ones(N_per_cell,dtype=int)*jjj\
-                    for jjj in range(NTWK['POPS'][jj].N)])
-
+                                np.random.choice(np.arange(NTWK['POPS'][ii].N), N_per_cell)\
+                                          for jjj in range(NTWK['POPS'][jj].N)])
+            j_fixed = np.concatenate([np.ones(N_per_cell,dtype=int)*jjj for jjj in range(NTWK['POPS'][jj].N)])
             CONN[ii,jj].connect(i=i_rdms, j=j_fixed) 
             CONN[ii,jj].w = NTWK['M'][ii,jj]['Q']*brian2.nS
             CONN2.append(CONN[ii,jj])
@@ -209,18 +237,24 @@ def build_up_recurrent_connections(NTWK, SEED=1, verbose=False):
     NTWK['REC_SYNAPSES'] = CONN2
 
 
-########################
-####  Afferent Input ###
-########################
+# #######################################################
+# ################## AFFERENT INPUTS ####################
+# #######################################################
 
+def waveform(t, Model):
+    waveform = 0*t
+    # first waveform
+    for tt, fa in zip(\
+         2.*Model['rise']+np.arange(3)*(3.*Model['rise']+Model['DT']),
+                      [Model['Faff1'], Model['Faff2'], Model['Faff3']]):
+        waveform += fa*\
+             (1+scipy.special.erf((t-tt)/Model['rise']))*\
+             (1+scipy.special.erf(-(t-tt-Model['DT'])/Model['rise']))/4
+    return waveform
 
-def set_spikes_from_time_varying_rate(time_array,
-                                      rate_array,
-                                      N, Nsyn,
-                                      SEED=1):
+def set_spikes_from_time_varying_rate(time_array, rate_array, N, Nsyn, SEED=1):
     """
-    generates an inhomogeneous Poisson process 
-            from a time-varying waveform in Hz
+    generates an inhomogeneous Poisson process from a time-varying waveform in Hz
     """
     np.random.seed(SEED) # setting the seed !
     
@@ -239,9 +273,8 @@ def set_spikes_from_time_varying_rate(time_array,
 
     return np.array(indices), np.array(times)*brian2.ms
 
-
 def construct_feedforward_input(NTWK,
-                                source_pop, target_pop,
+                                target_pop, afferent_pop,\
                                 t, rate_array,\
                                 verbose=False,
                                 SEED=1):
@@ -258,8 +291,8 @@ def construct_feedforward_input(NTWK,
     Model = NTWK['Model']
     
     # extract parameters of the afferent input
-    Nsyn = Model['p_'+source_pop+'_'+target_pop]*Model['N_'+source_pop]
-    Qsyn = Model['Q_'+source_pop+'_'+target_pop]
+    Nsyn = Model['p_'+afferent_pop+'_'+target_pop]*Model['N_'+afferent_pop]
+    Qsyn = Model['Q_'+afferent_pop+'_'+target_pop]
 
     #finding the target pop in the brian2 objects
     ipop = np.argwhere(NTWK['POPULATIONS']==target_pop).flatten()[0]
@@ -269,10 +302,9 @@ def construct_feedforward_input(NTWK,
             print('drawing Poisson process for afferent input [...]')
         indices, times = set_spikes_from_time_varying_rate(\
                             t, rate_array,\
-                            NTWK['POPS'][ipop].N, Nsyn,\
-                                        SEED=(SEED+2)**2%100)
+                            NTWK['POPS'][ipop].N, Nsyn, SEED=(SEED+2)**2%100)
         spikes = brian2.SpikeGeneratorGroup(NTWK['POPS'][ipop].N, indices, times)
-        pre_increment = 'G'+source_pop+target_pop+' += w'
+        pre_increment = 'G'+afferent_pop+target_pop+' += w'
         synapse = brian2.Synapses(spikes, NTWK['POPS'][ipop], on_pre=pre_increment,\
                                         model='w:siemens')
         synapse.connect('i==j')
@@ -282,29 +314,27 @@ def construct_feedforward_input(NTWK,
         NTWK['PRE_SYNAPSES'].append(synapse)
         
     else:
-        print('Nsyn = 0 for', source_pop+'_'+target_pop)
+        print('Nsyn = 0 for', afferent_pop+'_'+target_pop)
     
             
-##########################
-####  Initialisation #####
-##########################
+# ################################################################
+# ## --------------- Initial Condition ------------------------ ##
+# ################################################################
 
 def initialize_to_rest(NTWK):
     """
     Vm to resting potential and conductances to 0
     """
     for ii in range(len(NTWK['POPS'])):
-        NTWK['POPS'][ii].V =\
-                NTWK['NEURONS'][ii]['params']['El']*brian2.mV
+        NTWK['POPS'][ii].V = NTWK['NEURONS'][ii]['params']['El']*brian2.mV
         for jj in range(len(NTWK['POPS'])):
             if NTWK['M'][jj,ii]['pconn']>0: # if connection
-                exec("NTWK['POPS'][ii].G"+\
-                        NTWK['M'][jj,ii]['name']+" = 0.*brian2.nS")
-               
-
+                exec("NTWK['POPS'][ii].G"+NTWK['M'][jj,ii]['name']+" = 0.*brian2.nS")
+                
 # #####################
 # ## ----- Run ----- ##
 # #####################
+
 
 def collect_and_run(NTWK, verbose=False):
     """
@@ -321,56 +351,40 @@ def collect_and_run(NTWK, verbose=False):
         if key in NTWK.keys():
             net.add(NTWK[key])
 
-    if verbose:
-        print('running simulation [...]')
+    print('running simulation [...]')
     net.run(NTWK['tstop']*brian2.ms)
     return net
 
-def run_ntwk_sim(Model,
-                 REC_POPS, 
-                 AFF_POPS=[],
-                 AFF_RATE_ARRAYS=[],
-                 filename='data/sas.h5',
-                 recording_settings = dict(with_Vm=2),
-                 verbose=False,
-                 SEED=None):
-
-    if SEED==None:
-        SEED = np.random.randint(100)
+def run_3pop_ntwk_model(Model,
+                        filename='data/sas.h5',
+                        with_Vm=4,
+                        verbose=False,
+                        SEED=3):
 
     print('initializing simulation [...]')
     NTWK = build_populations(Model,
-                             REC_POPS,
-                             AFFERENT_POPULATIONS=AFF_POPS,
-                             verbose=verbose,
-                             **recording_settings)
+                             ['RecExc', 'RecInh', 'DsInh'],
+                             AFFERENT_POPULATIONS=['AffExc'],
+                             with_Vm=with_Vm,
+                             verbose=verbose)
 
     build_up_recurrent_connections(NTWK,
-                                   SEED=SEED+1, 
-                                   verbose=verbose)
+                                   SEED=Model['SEED'], verbose=verbose)
 
 
-    NTWK['t_array'] = np.arange(\
-                        int(Model['tstop']/Model['dt']))*Model['dt']
+    Model['tstop'] = Model['rise']+3*(3.*Model['rise']+Model['DT'])
+    NTWK['t_array'] = np.arange(int(Model['tstop']/Model['dt']))*Model['dt']
+    NTWK['faff_waveform'] = waveform(NTWK['t_array'], Model)
 
-    for src, aff_array in zip(AFF_POPS, AFF_RATE_ARRAYS):
-
-        for i, target in enumerate(REC_POPS): 
-
-            if ('p_%s_%s' % (src, target) in Model) and\
-                    (Model['p_%s_%s' % (src, target)] > 0):
-
-                construct_feedforward_input(NTWK, src, target,
-                                            NTWK['t_array'],
-                                            aff_array,
-                                            verbose=verbose,
-                                            SEED=SEED+2)
-
-                NTWK['Rate_%s_%s' % (src, target)] = aff_array
+    for i, tpop in enumerate(['RecExc', 'RecInh', 'DsInh']): # both on excitation and inhibition
+        construct_feedforward_input(NTWK, tpop, 'AffExc',
+                                    NTWK['t_array'],
+                                    NTWK['faff_waveform'],
+                                    verbose=verbose,
+                                    SEED=int(37*SEED+i)%13)
 
     initialize_to_rest(NTWK)
     
-    print('running simulation [...]')
     network_sim = collect_and_run(NTWK,
                                   verbose=verbose)
     
@@ -383,13 +397,18 @@ if __name__=='__main__':
     
     import argparse
     parser=argparse.ArgumentParser(description="""
+    Demo file for the paper: 
+    "The Spectrum of Asynchronous Dynamics in Spiking Networks: A Theory for the Diversity of Non-Rhythmic Waking States"
+    Zerlaut et al., 2018
+    Reproducing Figure 3
     """,formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-v", "--verbose", help="print stuff",
                         action="store_true")
     
     args = parser.parse_args()
-    NTWK = run_ntwk_sim(Model,
-                        verbose=args.verbose)
+    NTWK = run_3pop_ntwk_model(Model,
+                               with_Vm=3,
+                               verbose=args.verbose)
 
     ### PLOT ###
     fig = plt.figure(figsize=(7,5.5))
@@ -400,22 +419,21 @@ if __name__=='__main__':
     ax1.set_xticks([]);ax1.set_ylabel(r'$\nu_a$ (Hz)')
     # populations activity (instant. firing rates)
     ax2 = plt.subplot2grid((6,1), (1, 0), rowspan=2)
-    for i, pop in enumerate(REC_POPS):
+    COLORS = ['#2ca02c', '#d62728', '#9467bd']
+    for i, pop in enumerate(['RecExc', 'RecInh', 'DsInh']):
         rate = NTWK['POP_ACT'][i].rate/brian2.Hz
         rate = gaussian_filter1d(rate, int(20./0.1)) # smoothing
         rate[rate<0.01] = 0.01
-        # ax2.semilogy(NTWK['t_array'], rate, '-', color=COLORS[i], label=pop)
-        ax2.plot(NTWK['t_array'], rate, '-', color=COLORS[i], label=pop)
+        ax2.semilogy(NTWK['t_array'], rate, '-', color=COLORS[i], label=pop)
     ax2.legend(frameon=False)
     ax2.set_xticks([]);ax2.set_ylabel('pop act. (Hz)')
     # sample Vm traces 
     ax3 = plt.subplot2grid((6,1), (3, 0), rowspan=3)
-    N = [3,1,1,1] # number displayed per population
+    N = [3,1,1] # number displayed per population
     j=0 # index to shift the Vm trace
-    for i, pop in enumerate(REC_POPS):
+    for i, pop in enumerate(['RecExc', 'RecInh', 'DsInh']):
         for n in range(N[i]):
-            ax3.plot(NTWK['t_array'], NTWK['VMS'][i].V[n]/brian2.mV-20*j,
-                     '-', color=COLORS[i])
+            ax3.plot(NTWK['t_array'], NTWK['VMS'][i].V[n]/brian2.mV-20*j, '-', color=COLORS[i])
             j+=1
     ax3.plot([0.09, 0.09], [-60, -50], 'k-')
     ax3.annotate('10mV', (0.1, -70))

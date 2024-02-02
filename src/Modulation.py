@@ -7,11 +7,11 @@ Fraction = 0.3
 Smoothing = 50
 
 whisking_event = {'fraction':Fraction,
-                  'amplitude':2.5,
+                  'amplitude':3.0,
                   'name':'whisking',
                   'color':'dodgerblue'}
 running_event = {'fraction':Fraction,
-                 'amplitude':3.5,
+                 'amplitude':3.,
                   'name':'running',
                  'color':'firebrick'}
 whiskerAff_event = {'fraction':Fraction,

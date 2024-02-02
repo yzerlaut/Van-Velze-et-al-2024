@@ -15,10 +15,15 @@ for key in Model2:
     Model[key] = Model2[key]
 
 # Coupling:
-Model['p_RecExc_SstInh'] = 0.01
+Model['p_RecExc_SstInh'] = 0.02 # this only works
+
+Model['p_RecExc_SstInh'] = 0.025
+Model['p_SstInh_RecExc'] = 0.025
 
 for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
-    if pre in ['BgExc', 'ThalExc']:
+    if pre=='ThalExc':
+        Model['Q_%s_%s'%(pre, post)] = 4. # nS
+    elif (pre=='BgExc') and ('Rec' in post):
         Model['Q_%s_%s'%(pre, post)] = 4. # nS
     elif 'Exc' in pre:
         Model['Q_%s_%s'%(pre, post)] = 2. # nS
