@@ -28,7 +28,7 @@ Model = {
     'p_RecExc_RecExc':0.05, 'p_RecExc_RecInh':0.05, 
     'p_RecInh_RecExc':0.05, 'p_RecInh_RecInh':0.05, 
     'p_ThalExc_RecExc':0.05, 'p_ThalExc_RecInh':0.05, 
-    'p_ExcToThal_ThalExc':0.15,
+    'p_ExcToThal_ThalExc':0.075,
     'p_BgExc_ThalExc':0.05, 
     'p_BgExc_RecExc':0.02, 
     'p_BgExc_RecInh':0.02,

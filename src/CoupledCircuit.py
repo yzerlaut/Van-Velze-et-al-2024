@@ -17,7 +17,9 @@ for key in Model2:
 # Coupling:
 Model['p_RecExc_SstInh'] = 0.02 # this only works
 
-Model['p_RecExc_SstInh'] = 0.025
+Model['p_RecExc_SstInh'] = 0.05
+Model['p_RecInh_SstInh'] = 0.025
+Model['p_SstInh_RecInh'] = 0.025
 Model['p_SstInh_RecExc'] = 0.025
 
 for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):

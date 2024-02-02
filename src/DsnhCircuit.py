@@ -11,7 +11,7 @@ AFF_POPS = ['BgExc', 'ExcToVip']
 
 Model = {
     # numbers of neurons in population
-    'N_SstInh':200, 'N_VipInh':200,
+    'N_SstInh':100, 'N_VipInh':100,
     'N_ExcToVip':100, 'N_BgExc':200, 
     # synaptic time constants
     'Tsyn_Exc':5., 'Tsyn_Inh':5.,
@@ -21,12 +21,12 @@ Model = {
     'dt':0.1, 
     # connectivity parameters (proba.)
     # Vip -> Sst
-    'p_VipInh_SstInh':0.15, 
+    'p_VipInh_SstInh':0.3, 
     # Exc -> Sst
-    'p_BgExc_SstInh':0.1, 
+    'p_BgExc_SstInh':0.15, 
     # Exc -> Vip
-    'p_BgExc_VipInh':0.05, 
-    'p_ExcToVip_VipInh':0.1, 
+    'p_BgExc_VipInh':0.1, 
+    'p_ExcToVip_VipInh':0.05, 
     # Background Act.
     'F_BgExc':10.,
 }
