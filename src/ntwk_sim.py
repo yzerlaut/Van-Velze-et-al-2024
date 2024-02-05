@@ -332,13 +332,14 @@ def run_ntwk_sim(Model,
                  AFF_RATE_ARRAYS=[],
                  filename='data/sas.h5',
                  recording_settings = dict(with_Vm=2),
-                 verbose=False,
+                 verbose=True,
                  SEED=None):
 
     if SEED==None:
         SEED = np.random.randint(100)
 
-    print('initializing simulation [...]')
+    if verbose:
+        print('initializing simulation [...]')
     NTWK = build_populations(Model,
                              REC_POPS,
                              AFFERENT_POPULATIONS=AFF_POPS,
@@ -370,11 +371,13 @@ def run_ntwk_sim(Model,
 
     initialize_to_rest(NTWK)
     
-    print('running simulation [...]')
+    if verbose:
+        print('running simulation [...]')
     network_sim = collect_and_run(NTWK,
                                   verbose=verbose)
     
-    print('-> done !')
+    if verbose:
+        print('-> done !')
 
     return NTWK
     

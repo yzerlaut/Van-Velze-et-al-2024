@@ -7,7 +7,7 @@ from neural_network_dynamics import ntwk
 
 dt = 0.1
 
-Fmin, Fmax, N = 0., 20., 11 
+Fmin, Fmax, N = 0., 14., 15 
 episode, inter_frac = 1000., 0.2
 smoothing = 50.
 Inputs = Fmin+np.arange(N)/(N-1)*(Fmax-Fmin)

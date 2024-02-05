@@ -22,6 +22,7 @@ Model = {
     # connectivity parameters (proba.)
     # Vip -> Sst
     'p_VipInh_SstInh':0.3, 
+    'p_SstInh_VipInh':0.025, 
     # Exc -> Sst
     'p_BgExc_SstInh':0.15, 
     # Exc -> Vip

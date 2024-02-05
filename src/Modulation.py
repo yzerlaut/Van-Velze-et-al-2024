@@ -2,8 +2,8 @@ import numpy as np
 from scipy.ndimage import gaussian_filter1d
 import matplotlib.pylab as plt
 
-EpisodeLength = 1.5e3
-Fraction = 0.3
+EpisodeLength = 2e3
+Fraction = 0.4
 Smoothing = 50
 
 whisking_event = {'fraction':Fraction,
@@ -27,26 +27,20 @@ Types = [whisking_event, running_event,
          whiskerAff_event, light_event]
 
 Events = [\
-    {'name':'V1 \n no light \n running event',
-     'neuromodulatory':[whisking_event, running_event],
-     'sensory':[],
-     },
-    {'name':'V1 \n ambient light \n running event',
-     'neuromodulatory':[whisking_event, running_event],
-     'sensory':[light_event],
-     },
-    {'name':'S1 \n whisker-trimmed \n running event',
-     'neuromodulatory':[whisking_event, running_event],
-     'sensory':[],
-     },
-    {'name':'S1 \n whisking & \n running event',
-     'neuromodulatory':[whisking_event, running_event],
-     'sensory':[whiskerAff_event],
-     },
-    {'name':'S1 \n whisking-only \n event',
+    {'name':'sensory drive \n mid-arousal event',
      'neuromodulatory':[whisking_event],
+     # 'sensory':[light_event],
      'sensory':[whiskerAff_event],
      },
+    {'name':'sensory drive \n high-arousal event ',
+     'neuromodulatory':[whisking_event, running_event],
+     # 'sensory':[light_event],
+     'sensory':[whiskerAff_event],
+     },
+    {'name':' no sensory drive \n high-arousal event',
+     'neuromodulatory':[whisking_event, running_event],
+     'sensory':[],
+     }
 ]
 
 def make_increment(t, e, fraction, 
@@ -58,7 +52,6 @@ def make_increment(t, e, fraction,
         (t<(tcenter+length*fraction/2.))
     increment[cond] += amplitude
     return gaussian_filter1d(increment, int(smoothing/dt))
-
 
 
 def build_arrays(Events,
@@ -83,7 +76,9 @@ def build_arrays(Events,
                                      length, event['amplitude'],
                                      smoothing, dt) 
                 if AX is not None:
-                    AX[i].fill_between(t, array, array+new, 
+                    AX[i].fill_between(t[::50], 
+                                       array[::50], 
+                                       array[::50]+new[::50], 
                                        lw=0, alpha=0.7, 
                                        color=event['color'])
                 array += new
