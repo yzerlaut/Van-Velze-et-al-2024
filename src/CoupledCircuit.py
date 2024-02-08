@@ -30,3 +30,17 @@ for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
         Model['Q_%s_%s'%(pre, post)] = 2. # nS
     elif 'Inh' in pre:
         Model['Q_%s_%s'%(pre, post)] = 10. # nS
+
+
+
+if __name__=='__main__':
+
+    for pre in AFF_POPS+REC_POPS:
+        print('----------------------------')
+        print(pre, Model['N_%s'%pre])
+        for post in REC_POPS:
+            if ('p_%s_%s' % (pre, post)) in Model:
+                print(pre, post, Model['p_%s_%s' % (pre, post)])
+            else:
+                print(pre, post, 0)
+

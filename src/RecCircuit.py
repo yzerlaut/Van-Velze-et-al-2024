@@ -60,4 +60,7 @@ for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
     elif 'Inh' in pre:
         Model['Q_%s_%s'%(pre, post)] = 10. # nS
 
+if __name__=='__main__':
+
+
     
