@@ -61,6 +61,7 @@ for pre, post in itertools.product(AFF_POPS+REC_POPS, REC_POPS):
         Model['Q_%s_%s'%(pre, post)] = 10. # nS
 
 if __name__=='__main__':
+    pass
 
 
     
